@@ -8,11 +8,20 @@ $games = {}
 $bot.message(start_with: "/begin") do |event|
     if !$games.include? event.channel
         $games[event.channel] = DND::Game.new channel: event.channel, master: event.user
-        event.channel.send_message "Started new Game! #{event.user.username} is the dungeon master!"
+        event.send_message "Started new Game! #{event.user.username} is the dungeon master!"
     else
         $games[event.channel].restart event.user
-        event.channel.send_message "Restarted game, #{event.user.username} is the dungeon master!"
+        event.send_message "Restarted game, #{event.user.username} is the dungeon master!"
     end
+end
+
+$bot.message(start_with: "/help") do |event|
+    event.send_message  <<-EOF
+**Hello, I am dicebot**
+try ```/begin``` to begin a round of DND
+```/roll xDy``` to roll x y-sided dice
+```/sroll xDy``` to roll x y-sided dice in secret
+EOF
 end
 
 def new_command(cmd, &block)
@@ -20,7 +29,7 @@ def new_command(cmd, &block)
         if $games.include? event.channel
             block.call event, $games[event.channel]
         else
-            event.channel.send_message "No current game running: /begin"
+            event.send_message "No current game running: /begin"
         end
     end
 end
