@@ -1,13 +1,13 @@
 module DND
     class Game
-        @voice_channel = nil
-        @voice_enabled = false
-        @voice_bot = nil
         def initialize(attributes = {})
             @channel = attributes[:channel]
             def @channel.ascii(string, lang="")
                 self.send_message "```#{lang}\n#{string}\n```"
             end
+            @voice_channel = nil
+            @voice_enabled = false
+            @voice_bot = nil
             @master = attributes[:master]
             @server = @channel.server
             @server.channels.each do |c|
@@ -15,6 +15,8 @@ module DND
                     if c.users.include? @master
                         @voice_channel = c
                         @voice_enabled = true
+                        @youtube_que = []
+                        @youtube_playing = false
                         break # found voice channel
                     end
                 end
@@ -33,7 +35,7 @@ module DND
             if @voice_enabled
                 if @voice_bot.nil?
                     @voice_bot = bot.voice_connect(@voice_channel, false)
-                    @voice_bot.filter_volume=0.1
+                    @voice_bot.filter_volume=0.2
                     return true
                 else
                     voice_disconnect
@@ -56,9 +58,17 @@ module DND
             @voice_bot.stop_playing() if !@voice_bot.nil?
         end
         def play_file(file)
-            if !@voice_bot.nil?
-                @voice_bot.stop_playing
-                @voice_bot.play_file(file)
+            if @voice_enabled && !file.nil?
+                @youtube_que.push(file)
+            end
+            if !@youtube_playing && (@youtube_que.length > 0)
+                @youtube_playing = true
+                stop_playing
+                cf = @youtube_que.shift
+                @voice_bot.play_file(cf)
+                FileUtils.rm(cf)
+                @youtube_playing = false
+                play_file nil
             end
         end
         def debug

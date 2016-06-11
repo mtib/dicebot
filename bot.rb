@@ -30,6 +30,12 @@ $bot.message(start_with: "/debug") do |event|
     end
 end
 
+$bot.message(start_with: "/skip") do |event|
+    if $games.include? event.channel
+        $games[event.channel].stop_playing
+    end
+end
+
 def new_command(cmd, &block)
     $bot.message(start_with: "/#{cmd}") do |event|
         if $games.include? event.channel
@@ -57,10 +63,11 @@ end
 
 # this depends on the python application youtube-dl
 new_command("youtube") do |event, game|
-    af = "aac"
+    @channel.ascii "Adding your video to the queue"
+    af = "mp3"
     file = "/tmp/dicebot_#{Time.new.to_f.to_s}.#{af}"
     url = event.text[/ \S+youtu.?be\S+/]
-    cmd = "(youtube-dl -x --no-playlist -o #{file} --audio-quality 0 --audio-format #{af}#{url}) > /dev/null"
+    cmd = "(youtube-dl -x --no-playlist -o #{file} --audio-quality 9 --audio-format #{af}#{url}) > /dev/null"
     system(cmd)
     game.play_file(file)
 end
