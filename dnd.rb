@@ -1,8 +1,24 @@
 module DND
     class Game
+        @voice_channel = nil
+        @voice_enabled = false
+        @voice_bot = nil
         def initialize(attributes = {})
             @channel = attributes[:channel]
+            def @channel.ascii(string, lang="")
+                self.send_message "```#{lang}\n#{string}\n```"
+            end
             @master = attributes[:master]
+            @server = @channel.server
+            @server.channels.each do |c|
+                if c.voice?
+                    if c.users.include? @master
+                        @voice_channel = c
+                        @voice_enabled = true
+                        break # found voice channel
+                    end
+                end
+            end
         end
         def restart(master=@master)
             @master = master
@@ -13,8 +29,54 @@ module DND
         def secret(msg)
             @master.pm msg
         end
+        def voice_connect(bot)
+            if @voice_enabled
+                if @voice_bot.nil?
+                    @voice_bot = bot.voice_connect(@voice_channel, false)
+                    @voice_bot.filter_volume=0.1
+                    return true
+                else
+                    voice_disconnect
+                    @channel.ascii "The voice part of myself has killed itself"
+                    return false
+                end
+            else
+                @channel.ascii "Voice not enabled"
+                @voice_bot = nil
+                return false
+            end
+        end
+        def voice_disconnect
+            if !@voice_bot.nil?
+                @voice_bot.destroy
+                @voice_bot = nil
+            end
+        end
+        def stop_playing
+            @voice_bot.stop_playing() if !@voice_bot.nil?
+        end
+        def play_file(file)
+            if !@voice_bot.nil?
+                @voice_bot.stop_playing
+                @voice_bot.play_file(file)
+            end
+        end
+        def debug
+            answ = "***Debug Information***"
+            def answ.<<(string)
+                super "#{string}\n"
+            end
+            answ << "```"
+            answ << "Channel: #{@channel.name}"
+            answ << "Master: #{@master.name}"
+            answ << "Server: #{@server.name}"
+            answ << "Voice-able: #{@voice_enabled}"
+            answ << "Voice-channel: #{@voice_channel.name}" if !@voice_channel.nil?
+            answ << "```"
+            return answ
+        end
 
-        attr_reader :master
+        attr_reader :master, :voice_enabled
     end
 
     Dice = /(\d+)D(\d+)/i

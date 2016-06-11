@@ -18,10 +18,16 @@ end
 $bot.message(start_with: "/help") do |event|
     event.send_message  <<-EOF
 **Hello, I am dicebot**
-try ```/begin``` to begin a round of DND
+\n```/begin``` to begin a round of DND
 ```/roll xDy``` to roll x y-sided dice
 ```/sroll xDy``` to roll x y-sided dice in secret
 EOF
+end
+
+$bot.message(start_with: "/debug") do |event|
+    if $games.include? event.channel
+        event.send_message $games[event.channel].debug
+    end
 end
 
 def new_command(cmd, &block)
@@ -38,6 +44,27 @@ new_command("roll") do |event, game|
     game.broadcast DND.roll_string(event.content).to_s
 end
 
+new_command("voice") do |event, game|
+    if game.voice_enabled
+        permission = game.voice_connect($bot)
+        game.broadcast "Connection established" if permission
+    end
+end
+
+new_command("applause") do |event, game|
+    game.play_file("#{ENV["PWD"]}/applause2.mp3")
+end
+
+# this depends on the python application youtube-dl
+new_command("youtube") do |event, game|
+    af = "aac"
+    file = "/tmp/dicebot_#{Time.new.to_f.to_s}.#{af}"
+    url = event.text[/ \S+youtu.?be\S+/]
+    cmd = "(youtube-dl -x --no-playlist -o #{file} --audio-quality 0 --audio-format #{af}#{url}) > /dev/null"
+    system(cmd)
+    game.play_file(file)
+end
+
 new_command("sroll") do |event, game|
     if event.user == game.master
         game.secret DND.roll_string(event.content).to_s
@@ -47,9 +74,10 @@ new_command("sroll") do |event, game|
 
 end
 
-$bot.mention() do |event|
+$bot.mention(from: "mtib") do |event|
     event.send_message "I will now kill myself!"
     $bot.stop
 end
 
+puts $bot.invite_url
 $bot.run
