@@ -15,7 +15,7 @@ module DND
                     if c.users.include? @master
                         @voice_channel = c
                         @voice_enabled = true
-                        @youtube_que = []
+                        @youtube_queue = []
                         @youtube_playing = false
                         break # found voice channel
                     end
@@ -65,12 +65,12 @@ module DND
         end
         def play_file(file)
             if @voice_enabled && !file.nil?
-                @youtube_que.push(file)
+                @youtube_queue.push(file)
             end
-            if !@youtube_playing && (@youtube_que.length > 0)
+            if !@youtube_playing && (@youtube_queue.length > 0)
                 @youtube_playing = true
                 stop_playing
-                cf = @youtube_que.shift
+                cf = @youtube_queue.shift
                 @voice_bot.play_file(cf)
                 FileUtils.rm(cf)
                 @youtube_playing = false
