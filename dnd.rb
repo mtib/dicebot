@@ -35,7 +35,7 @@ module DND
             if @voice_enabled
                 if @voice_bot.nil?
                     @voice_bot = bot.voice_connect(@voice_channel, false)
-                    @voice_bot.filter_volume=0.2
+                    @voice_bot.filter_volume=0.15
                     return true
                 else
                     voice_disconnect
@@ -46,6 +46,12 @@ module DND
                 @channel.ascii "Voice not enabled"
                 @voice_bot = nil
                 return false
+            end
+        end
+        def set_volume(v)
+            if v.to_f >= 0 && v.to_f <= 1
+                @voice_bot.filter_volume=v.to_f
+                @channel.ascii "Set volume to #{v.to_f} (applies to next song)"
             end
         end
         def voice_disconnect

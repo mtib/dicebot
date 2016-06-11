@@ -50,6 +50,10 @@ new_command("roll") do |event, game|
     game.broadcast DND.roll_string(event.content).to_s
 end
 
+new_command("volume") do |event, game|
+    game.set_volume event.text[/(\d+[\.,]?\d*)/]
+end
+
 new_command("voice") do |event, game|
     if game.voice_enabled
         permission = game.voice_connect($bot)
@@ -63,7 +67,7 @@ end
 
 # this depends on the python application youtube-dl
 new_command("youtube") do |event, game|
-    @channel.ascii "Adding your video to the queue"
+    event.send_message "Adding your video to the queue"
     af = "mp3"
     file = "/tmp/dicebot_#{Time.new.to_f.to_s}.#{af}"
     url = event.text[/ \S+youtu.?be\S+/]
