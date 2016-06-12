@@ -1,3 +1,5 @@
+require 'net/http'
+
 # Dungeons and Dragons module
 # contains (#Game) which is instantiated for every
 # game channel in Discord
@@ -62,10 +64,12 @@ module DND
       end
     end
 
-    def volume=(v)
-      v = v.to_f
+    def volume=(volume)
+      puts volume
+      v = volume.to_f
+      puts v
       if v >= 0 && v <= 1
-        @voice_bot.volume = v
+        # @voice_bot.volume = v
         @voice_bot.filter_volume = v
         ascii "Set volume to #{v} (applies to next song)"
       end
@@ -81,21 +85,28 @@ module DND
       @voice_bot.stop_playing unless @voice_bot.nil?
     end
 
-    def add_queue(file)
-      @youtube_queue.push(file) if @voice_enabled && !file.nil?
+    def add_websound_obj(obj)
+      @youtube_queue.push(obj) if @voice_enabled && !obj.nil?
     end
 
-    def play_file(file)
-      add_queue file
-      if !@youtube_playing && !@youtube_queue.empty?
-        @youtube_playing = true
+    def queue(url, user)
+      ws = WebSound.new link: url, user: user
+      add_websound_obj ws
+      play_file unless @youtube_playing
+    end
+
+    def play_file
+      @youtube_playing = true
+      until @youtube_queue.empty?
         stop_playing
-        cf = @youtube_queue.shift
-        @voice_bot.play_file(cf)
-        FileUtils.rm(cf)
-        @youtube_playing = false
-        play_file nil
+        ws = @youtube_queue.shift
+        ws.download
+        broadcast "Playing: **#{ws.title}**\n#{ws.link}\nadded by *#{ws.user.name}*"
+        @voice_bot.play_file(ws.file)
+        ws.remove
+        play_file
       end
+      @youtube_playing = false
     end
 
     def debug
@@ -131,5 +142,54 @@ module DND
       sum += rand(val)
     end
     sum
+  end
+
+  class WebSound
+    @@af = 'mp3'
+    def initialize(attributes = {})
+      @link = WebSound.expand(attributes[:link][1..-1])
+      @user = attributes[:user]
+      uri = URI(@link)
+      begin
+        @title = Net::HTTP.get(uri).scan(/<title>(.*)?<\/title>/i)[0][0]
+      rescue
+        @title = "~~could not get the title~~"
+      end
+    end
+
+    def download
+      @file = "/tmp/#{Time.now.to_f}.#{@@af}"
+      cmd = "youtube-dl -x --no-playlist -o #{@file} --audio-quality 9 --audio-format #{@@af} #{@link} > /dev/null"
+      system(cmd)
+    end
+
+    def remove
+      FileUtils.rm(@file)
+    end
+
+    def self.expand(link)
+      case link
+      when /youtu\.be/
+        "https://www.youtube.com/watch?v=#{link[/\/\w*?$/][1..-1]}"
+      else
+        link
+      end
+    end
+
+    def title
+      @title
+    end
+
+    def link
+      @link
+    end
+
+    def file
+      @file
+    end
+
+    def user
+      @user
+    end
   end
 end

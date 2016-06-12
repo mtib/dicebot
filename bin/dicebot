@@ -71,9 +71,13 @@ end
   event.text.scan(%r{\/c.{0,3} lang=(\w*)}i) do |l|
     lang = l[0]
   end
-  answ = event.text[event.text.index("\n")..-1].tr!('`', "'")
-  answ = "__**#{event.user.name}:**__\n```#{lang}\n#{answ}\n```"
-  event.send_message answ
+  begin
+    answ = event.text[event.text.index("\n")..-1].gsub('`', "'")
+    answ = "__**#{event.user.name}:**__\n```#{lang}\n#{answ}\n```"
+    event.send_message answ
+  rescue
+    event.send_message "#{event.user.name} is to stupid to hold down shift"
+  end
 end
 
 def new_command(*cmd)
@@ -94,8 +98,10 @@ new_command('roll') do |event, game|
   game.broadcast res
 end
 
+VOLUME_REGEX = /\d{0,1}[\.,]{1}\d{0,}/
+
 new_command('volume') do |event, game|
-  game.volume = event.text[/(\d*[\.,]?\d*)/]
+  game.volume=(event.text[VOLUME_REGEX])
 end
 
 def voice_session(_event, game)
@@ -115,18 +121,12 @@ end
 
 # this depends on the python application youtube-dl
 new_command('youtube', 'y') do |event, game|
-  af = 'mp3'
-  file = "/tmp/#{Time.now.to_f}.#{af}"
-  # url = event.text[/ \S+youtu.?be\S+/]
-  url = event.text[event.text.index(' ')..-1]
-  event.send_message "#{event.user.name} added #{url} to the queue"
-  cmd = "youtube-dl -x --no-playlist -o #{file} \
---audio-quality 9 --audio-format #{af}#{url} > /dev/null"
-  system(cmd)
   begin
-    game.play_file(file)
-  rescue
-    puts "Failed at downloading #{url}"
+    url = event.text[event.text.index(' ')..-1]
+    event.send_message "#{event.user.name} added #{url} to the queue"
+    game.queue(url, event.user)
+  rescue Interrupt
+    event.send_message "Something went wrong, check #{url} for errors"
   end
 end
 
