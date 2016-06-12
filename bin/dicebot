@@ -1,6 +1,7 @@
-$LOAD_PATH << "."
+#!/usr/bin/env ruby
+
 require 'discordrb'
-require 'dnd'
+require 'dicebot_mtib'
 
 $bot = Discordrb::Bot.new token: ENV["DICEBOT"], application_id: (ENV["DICEBOTID"].to_i)
 $games = {}
@@ -57,6 +58,17 @@ $bot.message(start_with: "/vb") do |event|
     event.message.delete
     begin_session event
     voice_session event, $games[event.channel] if $games.include? event.channel
+end
+
+$bot.message(start_with: ["/code", "/c"]) do |event|
+    event.message.delete
+    lang = ""
+    event.text.scan(/\/c.{0,3} lang=(\w*)/i) do |l|
+        lang = l[0]
+    end
+    answ = "__**#{event.user.name}:**__\n```#{lang}\n#{event.text[event.text.index("\n")..-1].gsub!("`","'")}\n```"
+    puts answ
+    event.send_message answ
 end
 
 def new_command(*cmd, &block)

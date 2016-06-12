@@ -50,6 +50,7 @@ module DND
         end
         def set_volume(v)
             if v.to_f >= 0 && v.to_f <= 1
+                @voice_bot.volume = v.to_f
                 @voice_bot.filter_volume=v.to_f
                 @channel.ascii "Set volume to #{v.to_f} (applies to next song)"
             end
