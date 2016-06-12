@@ -1,3 +1,4 @@
+puts "loading dnd"
 module DND
     class Game
         def initialize(attributes = {})
