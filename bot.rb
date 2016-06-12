@@ -49,6 +49,7 @@ $bot.message(start_with: "/skip") do |event|
     event.message.delete
     if $games.include? event.channel
         $games[event.channel].stop_playing
+        puts "#{event.user.name} skipped this song"
     end
 end
 
@@ -96,7 +97,7 @@ end
 # this depends on the python application youtube-dl
 new_command("youtube", "y") do |event, game|
     af = "mp3"
-    file = "/tmp/dicebot_#{Time.new.to_f.to_s}.#{af}"
+    file = "/tmp/#{Time.now.to_f}.#{af}"
     # url = event.text[/ \S+youtu.?be\S+/]
     url = event.text[event.text.index(" ")..-1]
     event.send_message "#{event.user.name} added #{url} to the queue"

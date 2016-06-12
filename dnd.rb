@@ -71,6 +71,10 @@ module DND
                 @youtube_playing = true
                 stop_playing
                 cf = @youtube_queue.shift
+                name = cf.match(/\/tmp\/(.*)\..*/i)[1]
+                msg = "Playing #{name} on #{@server.name} / #{@voice_channel.name}"
+                puts msg
+                @channel.send msg
                 @voice_bot.play_file(cf)
                 FileUtils.rm(cf)
                 @youtube_playing = false
