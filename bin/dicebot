@@ -95,7 +95,7 @@ new_command('roll') do |event, game|
 end
 
 new_command('volume') do |event, game|
-  game.set_volume event.text[/(\d*[\.,]?\d*)/]
+  game.volume = event.text[/(\d*[\.,]?\d*)/]
 end
 
 def voice_session(_event, game)

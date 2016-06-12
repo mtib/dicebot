@@ -63,10 +63,11 @@ module DND
     end
 
     def volume=(v)
-      if v.to_f >= 0 && v.to_f <= 1
-        @voice_bot.volume = v.to_f
-        @voice_bot.filter_volume = v.to_f
-        ascii "Set volume to #{v.to_f} (applies to next song)"
+      v = v.to_f
+      if v >= 0 && v <= 1
+        @voice_bot.volume = v
+        @voice_bot.filter_volume = v
+        ascii "Set volume to #{v} (applies to next song)"
       end
     end
 
