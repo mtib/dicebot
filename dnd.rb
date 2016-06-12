@@ -103,7 +103,6 @@ module DND
         sum = 0
         dices.scan(Dice) do |match|
             m = match.to_a
-            print(m)
             sum += roll_int(m[0].to_i, m[1].to_i)
         end
         sum

@@ -6,6 +6,11 @@ $bot = Discordrb::Bot.new token: ENV["DICEBOT"], application_id: (ENV["DICEBOTID
 $games = {}
 
 $bot.message(start_with: "/begin") do |event|
+    event.message.delete
+    begin_session(event)
+end
+
+def begin_session(event)
     if !$games.include? event.channel
         $games[event.channel] = DND::Game.new channel: event.channel, master: event.user
         event.send_message "Started new Game! #{event.user.username} is the dungeon master!"
@@ -16,28 +21,47 @@ $bot.message(start_with: "/begin") do |event|
 end
 
 $bot.message(start_with: "/help") do |event|
-    event.send_message  <<-EOF
-**Hello, I am dicebot**
-\n```/begin``` to begin a round of DND
-```/roll xDy``` to roll x y-sided dice
-```/sroll xDy``` to roll x y-sided dice in secret
-EOF
+    helptext = "**Hello, I am dicebot**\n\n"
+    def helptext.add(cmd, explain)
+        self << "```/#{cmd}``` #{explain}\n\n"
+    end
+    helptext.add("help", "to show this help")
+    helptext.add("begin", "to begin a round of dnd, also takes control of the bot")
+    helptext.add("roll <x>D<y>", "to publicly roll x y-sided dice")
+    helptext.add("sroll <x>D<y>", "to secretly roll x y-sided dice")
+    helptext.add("voice", "to (dis)allow the bot to connect to your voice channel [toggle]")
+    helptext.add("vb", "shortcut for /begin and /voice")
+    helptext.add("youtube", "audio playback using youtube-dl")
+    helptext.add("volume <float>", "sets audio volume for next songs [0.0,1.0]")
+    helptext.add("@dicebot", "will kill the bot if you are mtib")
+    event.send_message helptext
+    helptext
 end
 
 $bot.message(start_with: "/debug") do |event|
+    event.message.delete
     if $games.include? event.channel
         event.send_message $games[event.channel].debug
     end
 end
 
 $bot.message(start_with: "/skip") do |event|
+    event.message.delete
     if $games.include? event.channel
         $games[event.channel].stop_playing
     end
 end
 
-def new_command(cmd, &block)
-    $bot.message(start_with: "/#{cmd}") do |event|
+$bot.message(start_with: "/vb") do |event|
+    event.message.delete
+    begin_session event
+    voice_session event, $games[event.channel] if $games.include? event.channel
+end
+
+def new_command(*cmd, &block)
+    cmd.map! do |x| "/#{x}" end
+    $bot.message(start_with: cmd) do |event|
+        event.message.delete
         if $games.include? event.channel
             block.call event, $games[event.channel]
         else
@@ -47,18 +71,22 @@ def new_command(cmd, &block)
 end
 
 new_command("roll") do |event, game|
-    game.broadcast DND.roll_string(event.content).to_s
+    game.broadcast event.content[event.content.index(" ")..-1] << " => " << DND.roll_string(event.content).to_s
 end
 
 new_command("volume") do |event, game|
-    game.set_volume event.text[/(\d+[\.,]?\d*)/]
+    game.set_volume event.text[/(\d*[\.,]?\d*)/]
 end
 
-new_command("voice") do |event, game|
+def voice_session(event, game)
     if game.voice_enabled
         permission = game.voice_connect($bot)
         game.broadcast "Connection established" if permission
     end
+end
+
+new_command("voice") do |event, game|
+    voice_session(event,game)
 end
 
 new_command("applause") do |event, game|
@@ -66,19 +94,24 @@ new_command("applause") do |event, game|
 end
 
 # this depends on the python application youtube-dl
-new_command("youtube") do |event, game|
-    event.send_message "Adding your video to the queue"
+new_command("youtube", "y") do |event, game|
     af = "mp3"
     file = "/tmp/dicebot_#{Time.new.to_f.to_s}.#{af}"
-    url = event.text[/ \S+youtu.?be\S+/]
+    # url = event.text[/ \S+youtu.?be\S+/]
+    url = event.text[event.text.index(" ")..-1]
+    event.send_message "#{event.user.name} added #{url} to the queue"
     cmd = "(youtube-dl -x --no-playlist -o #{file} --audio-quality 9 --audio-format #{af}#{url}) > /dev/null"
     system(cmd)
-    game.play_file(file)
+    begin
+        game.play_file(file)
+    rescue
+        puts "Failed at downloading #{url}"
+    end
 end
 
 new_command("sroll") do |event, game|
     if event.user == game.master
-        game.secret DND.roll_string(event.content).to_s
+        game.secret event.content[event.content.index(" ")..-1] << " => " << DND.roll_string(event.content).to_s
     else
         event.user.pm "Only the dungeon master should use this, but here you go: #{DND.roll_string(event.content)}"
     end
@@ -91,4 +124,9 @@ $bot.mention(from: "mtib") do |event|
 end
 
 puts $bot.invite_url
-$bot.run
+begin
+    $bot.run
+rescue Interrupt
+    # this will not run, if stopped normally
+    puts "Bye!"
+end
