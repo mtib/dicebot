@@ -22,7 +22,7 @@ def begin_session(event)
                                             master: event.user
       "Started new Game! #{event.user.username} is the dungeon master!"
     end
-  end; event.send_message con
+  end; event.send_message(con.call)
 end
 
 @bot.message(start_with: '/help') do |event|

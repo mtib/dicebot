@@ -11,11 +11,15 @@ module DND
   # @todo characters
   # @todo fighting
   class Game
-    attr_reader @voice_channel, @voice_enabled, @voice_bot
-    attr_reader @master, @voice_enabled
+    attr_reader :voice_channel, :voice_enabled, :voice_bot
+    attr_reader :master, :voice_enabled
     def initialize(attributes = {})
       @channel = attributes[:channel]
       @master = attributes[:master]
+      update_voice
+    end
+
+    def update_voice
       @channel.server.channels.each do |c|
         next unless c.voice? && c.users.include?(@master)
         @voice_enabled = true
@@ -32,6 +36,7 @@ module DND
 
     def restart(master = @master)
       @master = master
+      update_voice
     end
 
     def broadcast(msg)
